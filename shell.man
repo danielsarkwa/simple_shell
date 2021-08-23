@@ -1,0 +1,31 @@
+.TH Ssh 1 2021-04-23  GNU/Linux
+
+.SH Name 
+Ssh \- SimpleShell
+
+.SH Synopsis
+.B Ssh
+[\fB\-h\fR]
+[\fB\-\-help\fR]
+[\fB\-v\fR]
+[\fB\-\-version\fR]
+
+.SH Description
+.B Ssh
+Display the characteristics of the shell and all the funcyionalities.
+
+.SH Options
+.TP
+.BR \-h " , " \-? " , " \-\-help
+displays the help information 
+.TP
+.BR \-v " , " \-? " , " \-\-version
+displays the version datestamp 
+
+.SH Authors
+Maikem Victorine <maikemvictorine@gmail.com>
+Daniel Yeboah <dhannysark@outlook.com>
+
+
+(copy the file to the directory  
+cp satview.1 /usr/share/man/man1 where it can be accessed by others)
