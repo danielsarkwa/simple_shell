@@ -1,277 +1,222 @@
-// C Program to design a shell in Linux
-#include<stdio.h>
-#include<string.h>
-#include<stdlib.h>
-#include<unistd.h>
-#include<sys/types.h>
-#include<sys/wait.h>
-#include<readline/readline.h>
-#include<readline/history.h>
+#include <sys/wait.h>
+#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
 
-#define MAXCOM 1000 // max number of letters to be supported
-#define MAXLIST 100 // max number of commands to be supported
-
-// Clearing the shell using escape sequences
-#define clear() printf("\033[H\033[J")
-
-// Greeting shell during startup
-void init_shell()
+int main(int argc, char **argv)
 {
-	clear();
-	printf("\n\n\n\n******************"
-		"************************");
-	printf("\n\n\n\t****MY SHELL****");
-	printf("\n\n\t-USE AT YOUR OWN RISK-");
-	printf("\n\n\n\n*******************"
-		"***********************");
-	char* username = getenv("USER");
-	printf("\n\n\nUSER is: @%s", username);
-	printf("\n");
-	sleep(1);
-	clear();
+  // Load config files, if any
+
+  /* Run command loop
+  */
+  lsh_loop();
+
+  // Perform any shutdown/cleanup
+  return EXIT_SUCCESS;
 }
 
-// Function to take input
-int takeInput(char* str)
+void lsh_loop(void)
 {
-	char* buf;
+  char *line;
+  char **args;
+  int status;
 
-	buf = readline("\n>>> ");
-	if (strlen(buf) != 0) {
-		add_history(buf);
-		strcpy(str, buf);
-		return 0;
-	} else {
-		return 1;
-	}
+  do {
+    printf("> ");
+    // Read the command from standard input.
+    line = lsh_read_line();
+
+    // Parse: Separate the command string into a program and arguments
+    args = lsh_split_line(line);
+
+    // Run the parsed commands
+    status = lsh_execute(args);
+
+    free(line);
+    free(args);
+  } while (status);
 }
 
-// Function to print Current Directory.
-void printDir()
+#define LSH_RL_BUFSIZE 1024
+char *lsh_read_line(void)
 {
-	char cwd[1024];
-	getcwd(cwd, sizeof(cwd));
-	printf("\nDir: %s", cwd);
+  int bufsize = LSH_RL_BUFSIZE;
+  int position = 0;
+  char *buffer = malloc(sizeof(char) * bufsize);
+  int c;
+
+  if (!buffer) {
+    fprintF(stderr, "lsh: allocation error\n");
+    exit(EXIT_FAILURE);
+  }
+
+  while (1) {
+    // Read a character
+    c = getchar();
+
+    // If we hit EOF, replace it with a null character and return
+    if (c == EOF || c == '\n') {
+      buffer[position] = '\0';
+      return buffer;
+    } else {
+      buffer[position] = c;
+    }
+    position++;
+  }
+
+  // If we have exceeded the buffer, reallocate
+  if (position >= bufsize) {
+    bufsize += LSH_RL_BUFSIZE;
+    buffer = realloc(buffer, bufsize);
+    if (!buffer) {
+      fprintf(stderr, "lsh: allocation error\n");
+      exit(EXIT_FAILURE);
+    }
+  }
 }
 
-// Function where the system command is executed
-void execArgs(char** parsed)
+#define LSH_TOK_BUFSIZE 64
+#define LSH_TOK_DELIM " \t\r\n\a"
+char **lsh_split_line(char *line)
 {
-	// Forking a child
-	pid_t pid = fork();
+  int bufsize = LSH_TOK_BUFSIZE, position = 0;
+  char **tokens = malloc(bufsize * sizeof(char*));
+  char *token;
 
-	if (pid == -1) {
-		printf("\nFailed forking child..");
-		return;
-	} else if (pid == 0) {
-		if (execvp(parsed[0], parsed) < 0) {
-			printf("\nCould not execute command..");
-		}
-		exit(0);
-	} else {
-		// waiting for child to terminate
-		wait(NULL);
-		return;
-	}
+  if (!tokens) {
+    fprintf(stderr, "lsh: allocation error\n");
+    exit(EXIT_FAILURE);
+  }
+
+  token = strtok(line, LSH_TOK_DELIM);
+  while (token != NULL) {
+    tokens[position] = token;
+    position++;
+
+    if (position >= bufsize) {
+      bufsize += LSH_TOK_BUFSIZE;
+      tokens = realloc(tokens, bufsize * sizeof(char*));
+      if (!tokens) {
+        fprintf(stderr, "lsh: allocation error\n");
+        exit(EXIT_FAILURE);
+      }
+    }
+
+    token = strtok(NULL, LSH_TOK_DELIM);
+  }
+  tokens[position] = NULL;
+  return tokens;
 }
 
-// Function where the piped system commands is executed
-void execArgsPiped(char** parsed, char** parsedpipe)
+int lsh_launch(char **args)
 {
-	// 0 is read end, 1 is write end
-	int pipefd[2];
-	pid_t p1, p2;
+  pid_t pid, wpid;
+  int status;
 
-	if (pipe(pipefd) < 0) {
-		printf("\nPipe could not be initialized");
-		return;
-	}
-	p1 = fork();
-	if (p1 < 0) {
-		printf("\nCould not fork");
-		return;
-	}
+  pid = fork();
+  if (pid == 0) {
+    // Child process
+    if (execvp(args[0], args) == -1) {
+      perror("lsh");
+    }
+    exit(EXIT_FAILURE);
+  } else if (pid < 0) {
+    // Error forking
+    perror("lsh");
+  } else {
+    // Parent process
+    do {
+      wpid = waitpid(pid, &status, WUNTRACED);
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+  }
 
-	if (p1 == 0) {
-		// Child 1 executing..
-		// It only needs to write at the write end
-		close(pipefd[0]);
-		dup2(pipefd[1], STDOUT_FILENO);
-		close(pipefd[1]);
-
-		if (execvp(parsed[0], parsed) < 0) {
-			printf("\nCould not execute command 1..");
-			exit(0);
-		}
-	} else {
-		// Parent executing
-		p2 = fork();
-
-		if (p2 < 0) {
-			printf("\nCould not fork");
-			return;
-		}
-
-		// Child 2 executing..
-		// It only needs to read at the read end
-		if (p2 == 0) {
-			close(pipefd[1]);
-			dup2(pipefd[0], STDIN_FILENO);
-			close(pipefd[0]);
-			if (execvp(parsedpipe[0], parsedpipe) < 0) {
-				printf("\nCould not execute command 2..");
-				exit(0);
-			}
-		} else {
-			// parent executing, waiting for two children
-			wait(NULL);
-			wait(NULL);
-		}
-	}
+  return 1;
 }
 
-// Help command builtin
-void openHelp()
-{
-	puts("\n***WELCOME TO MY SHELL HELP***"
-		"\nCopyright @ Suprotik Dey"
-		"\n-Use the shell at your own risk..."
-		"\nList of Commands supported:"
-		"\n>cd"
-		"\n>ls"
-		"\n>exit"
-		"\n>all other general commands available in UNIX shell"
-		"\n>pipe handling"
-		"\n>improper space handling");
+/*
+  Function Declarations for builtin shell commands:
+ */
+int lsh_cd(char **args);
+int lsh_help(char **args);
+int lsh_exit(char **args);
 
-	return;
+/*
+  List of builtin commands, followed by their corresponding functions.
+ */
+char *builtin_str[] = {
+  "cd",
+  "help",
+  "exit"
+};
+
+int (*builtin_func[]) (char **) = {
+  &lsh_cd,
+  &lsh_help,
+  &lsh_exit
+};
+
+int lsh_num_builtins() {
+  return sizeof(builtin_str) / sizeof(char *);
 }
 
-// Function to execute builtin commands
-int ownCmdHandler(char** parsed)
+/*
+  Builtin function implementations.
+*/
+// cd command function
+int lsh_cd(char **args)
 {
-	int NoOfOwnCmds = 4, i, switchOwnArg = 0;
-	char* ListOfOwnCmds[NoOfOwnCmds];
-	char* username;
-
-	ListOfOwnCmds[0] = "exit";
-	ListOfOwnCmds[1] = "cd";
-	ListOfOwnCmds[2] = "help";
-	ListOfOwnCmds[3] = "hello";
-
-	for (i = 0; i < NoOfOwnCmds; i++) {
-		if (strcmp(parsed[0], ListOfOwnCmds[i]) == 0) {
-			switchOwnArg = i + 1;
-			break;
-		}
-	}
-
-	switch (switchOwnArg) {
-	case 1:
-		printf("\nGoodbye\n");
-		exit(0);
-	case 2:
-		chdir(parsed[1]);
-		return 1;
-	case 3:
-		openHelp();
-		return 1;
-	case 4:
-		username = getenv("USER");
-		printf("\nHello %s.\nMind that this is "
-			"not a place to play around."
-			"\nUse help to know more..\n",
-			username);
-		return 1;
-	default:
-		break;
-	}
-
-	return 0;
+  if (args[1] == NULL) {
+    fprintf(stderr, "lsh: expected argument to \"cd\"\n");
+  } else {
+    if (chdir(args[1]) != 0) {
+      perror("lsh");
+    }
+  }
+  return 1;
 }
 
-// function for finding pipe
-int parsePipe(char* str, char** strpiped)
+// help command function
+int lsh_help(char **args)
 {
-	int i;
-	for (i = 0; i < 2; i++) {
-		strpiped[i] = strsep(&str, "|");
-		if (strpiped[i] == NULL)
-			break;
-	}
+  int i;
+  printf("Daniel Yeboah's LSH\n");
+  printf("Type program names and arguments, and hit enter.\n");
+  printf("The following are built in:\n");
 
-	if (strpiped[1] == NULL)
-		return 0; // returns zero if no pipe is found.
-	else {
-		return 1;
-	}
+  for (i = 0; i < lsh_num_builtins(); i++) {
+    printf("  %s\n", builtin_str[i]);
+  }
+
+  printf("Use the man command for information on other programs.\n");
+  return 1;
 }
 
-// function for parsing command words
-void parseSpace(char* str, char** parsed)
+// exit command function
+int lsh_exit(char **args)
 {
-	int i;
-
-	for (i = 0; i < MAXLIST; i++) {
-		parsed[i] = strsep(&str, " ");
-
-		if (parsed[i] == NULL)
-			break;
-		if (strlen(parsed[i]) == 0)
-			i--;
-	}
+  return 0;
 }
 
-int processString(char* str, char** parsed, char** parsedpipe)
+int lsh_execute(char **args)
 {
+  int i;
 
-	char* strpiped[2];
-	int piped = 0;
+  if (args[0] == NULL) {
+    // An empty command was entered.
+    return 1;
+  }
 
-	piped = parsePipe(str, strpiped);
+  for (i = 0; i < lsh_num_builtins(); i++) {
+    // check if the command mataches a builtin command
+    if (strcmp(args[0], builtin_str[i]) == 0) {
+      // run command if the command entered exists
+      return (*builtin_func[i])(args);
+    }
+  }
 
-	if (piped) {
-		parseSpace(strpiped[0], parsed);
-		parseSpace(strpiped[1], parsedpipe);
-
-	} else {
-
-		parseSpace(str, parsed);
-	}
-
-	if (ownCmdHandler(parsed))
-		return 0;
-	else
-		return 1 + piped;
-}
-
-int main()
-{
-	char inputString[MAXCOM], *parsedArgs[MAXLIST];
-	char* parsedArgsPiped[MAXLIST];
-	int execFlag = 0;
-	init_shell();
-
-	while (1) {
-		// print shell line
-		printDir();
-		// take input
-		if (takeInput(inputString))
-			continue;
-		// process
-		execFlag = processString(inputString,
-		parsedArgs, parsedArgsPiped);
-		// execflag returns zero if there is no command
-		// or it is a builtin command,
-		// 1 if it is a simple command
-		// 2 if it is including a pipe.
-
-		// execute
-		if (execFlag == 1)
-			execArgs(parsedArgs);
-
-		if (execFlag == 2)
-			execArgsPiped(parsedArgs, parsedArgsPiped);
-	}
-	return 0;
+  /* if the command does not exit in defined builtins, 
+      then run command with arguments in a new process
+  */
+  return lsh_launch(args);
 }
