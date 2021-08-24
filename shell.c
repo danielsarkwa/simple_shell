@@ -4,41 +4,146 @@
 #include <stdio.h>
 #include <string.h>
 
-int main(int argc, char **argv)
-{
-  // Load config files, if any
+/*
+  Function Declarations for builtin shell commands:
+ */
+int lsh_cd(char **args);
+int lsh_help(char **args);
+int lsh_exit(char **args);
 
-  /* Run command loop
-  */
-  lsh_loop();
+/*
+  List of builtin commands, followed by their corresponding functions.
+ */
+char *builtin_str[] = {
+  "cd",
+  "help",
+  "exit"
+};
 
-  // Perform any shutdown/cleanup
-  return EXIT_SUCCESS;
+int (*builtin_func[]) (char **) = {
+  &lsh_cd,
+  &lsh_help,
+  &lsh_exit
+};
+
+int lsh_num_builtins() {
+  return sizeof(builtin_str) / sizeof(char *);
 }
 
-void lsh_loop(void)
+/*
+  Builtin function implementations.
+*/
+
+/**
+   @brief Bultin command: change directory.
+   @param args List of args.  args[0] is "cd".  args[1] is the directory.
+   @return Always returns 1, to continue executing.
+ */
+int lsh_cd(char **args)
 {
-  char *line;
-  char **args;
+  if (args[1] == NULL) {
+    fprintf(stderr, "lsh: expected argument to \"cd\"\n");
+  } else {
+    if (chdir(args[1]) != 0) {
+      perror("lsh");
+    }
+  }
+  return 1;
+}
+
+/**
+   @brief Builtin command: print help.
+   @param args List of args.  Not examined.
+   @return Always returns 1, to continue executing.
+ */
+int lsh_help(char **args)
+{
+  int i;
+  printf("Stephen Brennan's LSH\n");
+  printf("Type program names and arguments, and hit enter.\n");
+  printf("The following are built in:\n");
+
+  for (i = 0; i < lsh_num_builtins(); i++) {
+    printf("  %s\n", builtin_str[i]);
+  }
+
+  printf("Use the man command for information on other programs.\n");
+  return 1;
+}
+
+/**
+   @brief Builtin command: exit.
+   @param args List of args.  Not examined.
+   @return Always returns 0, to terminate execution.
+ */
+int lsh_exit(char **args)
+{
+  return 0;
+}
+
+/**
+  @brief Launch a program and wait for it to terminate.
+  @param args Null terminated list of arguments (including program).
+  @return Always returns 1, to continue execution.
+ */
+int lsh_launch(char **args)
+{
+  pid_t pid, wpid;
   int status;
 
-  do {
-    printf("> ");
-    // Read the command from standard input.
-    line = lsh_read_line();
+  pid = fork();
+  if (pid == 0) {
+    // Child process
+    if (execvp(args[0], args) == -1) {
+      perror("lsh");
+    }
+    exit(EXIT_FAILURE);
+  } else if (pid < 0) {
+    // Error forking
+    perror("lsh");
+  } else {
+    // Parent process
+    do {
+      wpid = waitpid(pid, &status, WUNTRACED);
+    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+  }
 
-    // Parse: Separate the command string into a program and arguments
-    args = lsh_split_line(line);
+  return 1;
+}
 
-    // Run the parsed commands
-    status = lsh_execute(args);
+/**
+   @brief Execute shell built-in or launch program.
+   @param args Null terminated list of arguments.
+   @return 1 if the shell should continue running, 0 if it should terminate
+ */
+int lsh_execute(char **args)
+{
+  int i;
 
-    free(line);
-    free(args);
-  } while (status);
+  if (args[0] == NULL) {
+    // An empty command was entered.
+    return 1;
+  }
+
+  for (i = 0; i < lsh_num_builtins(); i++) {
+    // check if the command mataches a builtin command
+    if (strcmp(args[0], builtin_str[i]) == 0) {
+      // run command if the command entered exists
+      return (*builtin_func[i])(args);
+    }
+  }
+
+  /* if the command does not exit in defined builtins, 
+      then run command with arguments in a new process
+  */
+  return lsh_launch(args);
 }
 
 #define LSH_RL_BUFSIZE 1024
+/**
+   @brief Read a line of input from stdin.
+   @return The line from stdin.
+ */
 char *lsh_read_line(void)
 {
   int bufsize = LSH_RL_BUFSIZE;
@@ -47,7 +152,7 @@ char *lsh_read_line(void)
   int c;
 
   if (!buffer) {
-    fprintF(stderr, "lsh: allocation error\n");
+    fprintf(stderr, "lsh: allocation error\n");
     exit(EXIT_FAILURE);
   }
 
@@ -55,7 +160,7 @@ char *lsh_read_line(void)
     // Read a character
     c = getchar();
 
-    // If we hit EOF, replace it with a null character and return
+    // If we hit EOF, replace it with a null character and return.
     if (c == EOF || c == '\n') {
       buffer[position] = '\0';
       return buffer;
@@ -63,21 +168,26 @@ char *lsh_read_line(void)
       buffer[position] = c;
     }
     position++;
-  }
 
-  // If we have exceeded the buffer, reallocate
-  if (position >= bufsize) {
-    bufsize += LSH_RL_BUFSIZE;
-    buffer = realloc(buffer, bufsize);
-    if (!buffer) {
-      fprintf(stderr, "lsh: allocation error\n");
-      exit(EXIT_FAILURE);
+    // If we have exceeded the buffer, reallocate.
+    if (position >= bufsize) {
+      bufsize += LSH_RL_BUFSIZE;
+      buffer = realloc(buffer, bufsize);
+      if (!buffer) {
+        fprintf(stderr, "lsh: allocation error\n");
+        exit(EXIT_FAILURE);
+      }
     }
   }
 }
 
 #define LSH_TOK_BUFSIZE 64
 #define LSH_TOK_DELIM " \t\r\n\a"
+/**
+   @brief Split a line into tokens (very naively).
+   @param line The line.
+   @return Null-terminated array of tokens.
+ */
 char **lsh_split_line(char *line)
 {
   int bufsize = LSH_TOK_BUFSIZE, position = 0;
@@ -109,114 +219,46 @@ char **lsh_split_line(char *line)
   return tokens;
 }
 
-int lsh_launch(char **args)
+/**
+   @brief Loop getting input and executing it.
+ */
+void lsh_loop(void)
 {
-  pid_t pid, wpid;
+  char *line;
+  char **args;
   int status;
 
-  pid = fork();
-  if (pid == 0) {
-    // Child process
-    if (execvp(args[0], args) == -1) {
-      perror("lsh");
-    }
-    exit(EXIT_FAILURE);
-  } else if (pid < 0) {
-    // Error forking
-    perror("lsh");
-  } else {
-    // Parent process
-    do {
-      wpid = waitpid(pid, &status, WUNTRACED);
-    } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-  }
+  do {
+    printf("> ");
 
-  return 1;
+    // Read the command from standard input.
+    line = lsh_read_line();
+
+    // Parse: Separate the command string into a program and arguments
+    args = lsh_split_line(line);
+    
+    // Run the parsed commands
+    status = lsh_execute(args);
+
+    free(line);
+    free(args);
+  } while (status);
 }
 
-/*
-  Function Declarations for builtin shell commands:
+/**
+   @brief Main entry point.
+   @param argc Argument count.
+   @param argv Argument vector.
+   @return status code
  */
-int lsh_cd(char **args);
-int lsh_help(char **args);
-int lsh_exit(char **args);
-
-/*
-  List of builtin commands, followed by their corresponding functions.
- */
-char *builtin_str[] = {
-  "cd",
-  "help",
-  "exit"
-};
-
-int (*builtin_func[]) (char **) = {
-  &lsh_cd,
-  &lsh_help,
-  &lsh_exit
-};
-
-int lsh_num_builtins() {
-  return sizeof(builtin_str) / sizeof(char *);
-}
-
-/*
-  Builtin function implementations.
-*/
-// cd command function
-int lsh_cd(char **args)
+int main(int argc, char **argv)
 {
-  if (args[1] == NULL) {
-    fprintf(stderr, "lsh: expected argument to \"cd\"\n");
-  } else {
-    if (chdir(args[1]) != 0) {
-      perror("lsh");
-    }
-  }
-  return 1;
-}
+  // Load config files, if any.
 
-// help command function
-int lsh_help(char **args)
-{
-  int i;
-  printf("Daniel Yeboah's LSH\n");
-  printf("Type program names and arguments, and hit enter.\n");
-  printf("The following are built in:\n");
+  // Run command loop.
+  lsh_loop();
 
-  for (i = 0; i < lsh_num_builtins(); i++) {
-    printf("  %s\n", builtin_str[i]);
-  }
+  // Perform any shutdown/cleanup.
 
-  printf("Use the man command for information on other programs.\n");
-  return 1;
-}
-
-// exit command function
-int lsh_exit(char **args)
-{
-  return 0;
-}
-
-int lsh_execute(char **args)
-{
-  int i;
-
-  if (args[0] == NULL) {
-    // An empty command was entered.
-    return 1;
-  }
-
-  for (i = 0; i < lsh_num_builtins(); i++) {
-    // check if the command mataches a builtin command
-    if (strcmp(args[0], builtin_str[i]) == 0) {
-      // run command if the command entered exists
-      return (*builtin_func[i])(args);
-    }
-  }
-
-  /* if the command does not exit in defined builtins, 
-      then run command with arguments in a new process
-  */
-  return lsh_launch(args);
+  return EXIT_SUCCESS;
 }
