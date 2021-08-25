@@ -103,12 +103,11 @@ int lsh_launch(char **args)
     perror("lsh");
   } else {
     // Parent process
+    wpid = waitpid(pid, &status, WUNTRACED);
     do {
       // wpid = waitpid(pid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
   }
-
-  wpid = waitpid(pid, &status, WUNTRACED);
 
   return 1;
 }
