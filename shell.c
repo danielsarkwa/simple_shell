@@ -41,7 +41,7 @@ int lsh_num_builtins(void)
  */
 int lsh_cd(char **args)
 {
-  if(args[1] == NULL)
+  if (args[1] == NULL)
   {
     fprintf(stderr, "lsh: expected argument to \"cd\"\n");
   }
