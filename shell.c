@@ -4,15 +4,15 @@
 #include <stdio.h>
 #include <string.h>
 
-/*
-  Function Declarations for builtin shell commands:
+/**
+ * Function Declarations for builtin shell commands:
  */
 int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
 
-/*
-  List of builtin commands, followed by their corresponding functions.
+/**
+ * List of builtin commands, followed by their corresponding functions.
  */
 char *builtin_str[] = {
   "cd",
@@ -26,13 +26,14 @@ int (*builtin_func[]) (char **) = {
   &lsh_exit
 };
 
-int lsh_num_builtins() {
+int lsh_num_builtins()
+{
   return sizeof(builtin_str) / sizeof(char *);
 }
 
-/*
-  Builtin function implementations.
-*/
+/**
+ * Builtin function implementations.
+ */
 
 /**
    @brief Bultin command: change directory.
@@ -93,19 +94,25 @@ int lsh_launch(char **args)
 
   pid = fork();
   if (pid == 0) {
-    // Child process
+    /**
+     * Child process
+     */
     if (execvp(args[0], args) == -1) {
       perror("lsh");
     }
     exit(EXIT_FAILURE);
   } else if (pid < 0) {
-    // Error forking
+    /**
+     * Error forking
+     */
     perror("lsh");
   } else {
-    // Parent process
+    /**
+     * Parent proces
+     */
     wpid = waitpid(pid, &status, WUNTRACED);
     do {
-      // wpid = waitpid(pid, &status, WUNTRACED);
+      wpid = waitpid(pid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
   }
 
@@ -122,21 +129,25 @@ int lsh_execute(char **args)
   int i;
 
   if (args[0] == NULL) {
-    // An empty command was entered.
+    /**
+     * An empty command was entered
+     */
     return 1;
   }
 
   for (i = 0; i < lsh_num_builtins(); i++) {
-    // check if the command mataches a builtin command
+    /**
+     * Check if the command mataches a builtin command
+     */
     if (strcmp(args[0], builtin_str[i]) == 0) {
       // run command if the command entered exists
       return (*builtin_func[i])(args);
     }
   }
-
-  /* if the command does not exit in defined builtins, 
-      then run command with arguments in a new process
-  */
+  /**
+   * if the command does not exit in defined builtins,
+        then run command with arguments in a new process
+   */
   return lsh_launch(args);
 }
 
@@ -152,17 +163,23 @@ char *lsh_read_line(void)
   char *buffer = malloc(sizeof(char) * bufsize);
   int c;
 
+  /**
+   * when there is a failure in memory allocation
+   */
   if (!buffer) {
-    // when there is a failure in memory allocation
     fprintf(stderr, "lsh: allocation error\n");
     exit(EXIT_FAILURE);
   }
 
   while (1) {
-    // Read a character
+    /**
+     * Read a character
+     */
     c = getchar();
 
-    // If we hit EOF, replace it with a null character and return.
+    /**
+     * If we hit EOF, replace it with a null character and return
+     */
     if (c == EOF || c == '\n') {
       buffer[position] = '\0';
       return buffer;
@@ -171,7 +188,9 @@ char *lsh_read_line(void)
     }
     position++;
 
-    // If we have exceeded the buffer, reallocate.
+    /**
+     * If we have exceeded the buffer, reallocate
+     */
     if (position >= bufsize) {
       bufsize += LSH_RL_BUFSIZE;
       buffer = realloc(buffer, bufsize);
@@ -234,13 +253,19 @@ void lsh_loop(void)
   do {
     printf("> ");
 
-    // Read the command from standard input.
+    /**
+     * Read the command from standard input 
+     */
     line = lsh_read_line();
 
-    // Parse: Separate the command string into a program and arguments
+    /**
+     * Parse: Separate the command string into a program and arguments
+     */
     args = lsh_split_line(line);
-    
-    // Run the parsed commands
+
+    /**
+     * Run the parsed commands
+     */
     status = lsh_execute(args);
 
     free(line);
@@ -256,11 +281,14 @@ void lsh_loop(void)
  */
 int main(int argc, char **argv)
 {
-  // Load config files, if any.
-
-  // Run command loop.
+  /**
+   * Load config files, if any.
+   * Run command loop
+   */
   lsh_loop();
 
-  // Perform any shutdown/cleanup.
+  /**
+   * Perform any shutdown/cleanup
+   */
   return EXIT_SUCCESS;
 }
