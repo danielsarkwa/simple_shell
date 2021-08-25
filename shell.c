@@ -7,8 +7,8 @@
 * Function Declarations for builtin shell commands:
 */
 int lsh_cd(char **args);
-int lsh_help...(NULL);
-int lsh_exit...(NULL);
+int lsh_help(void);
+int lsh_exit(void);
 /**
 * List of builtin commands, followed by their corresponding functions.
 */
@@ -54,7 +54,7 @@ return (1);
 * @param args List of args.  Not examined.
 * @return Always returns 1, to continue executing.
 */
-int lsh_help...(NULL)
+int lsh_help(void)
 {
 int i;
 printf("Daniel Yeboah's LSH\n");
@@ -72,7 +72,7 @@ return (1);
 * @param args List of args.  Not examined.
 * @return Always returns 0, to terminate execution.
 */
-int lsh_exit...(NULL)
+int lsh_exit(void)
 {
 return (0);
 }
@@ -143,10 +143,10 @@ if (strcmp(args[0], builtin_str[i]) == 0)
 */
 /**
  * cd --> lsh_cd(char **args)
- * help --> lsh_help(NULL)
- * exit --> lsh_exit(NULL)
+ * help --> lsh_help(void)
+ * exit --> lsh_exit(void)
 */
-return ((*builtin_func[i])(args));
+return ((*builtin_func[i])(void | args));
 }
 }
 /**
