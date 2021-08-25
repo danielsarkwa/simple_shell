@@ -26,6 +26,3 @@ displays the version datestamp
 Maikem Victorine <maikemvictorine@gmail.com>
 Daniel Yeboah <dhannysark@outlook.com>
 
-
-(copy the file to the directory  
-cp satview.1 /usr/share/man/man1 where it can be accessed by others)
