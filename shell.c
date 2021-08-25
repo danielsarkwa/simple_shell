@@ -54,7 +54,7 @@ return (1);
 * @param args List of args.  Not examined.
 * @return Always returns 1, to continue executing.
 */
-int lsh_help(char **args)
+int lsh_help(void)
 {
 int i;
 printf("Daniel Yeboah's LSH\n");
@@ -72,7 +72,7 @@ return (1);
 * @param args List of args.  Not examined.
 * @return Always returns 0, to terminate execution.
 */
-int lsh_exit(char **args)
+int lsh_exit(void)
 {
 return (0);
 }
@@ -272,7 +272,7 @@ free(args);
 * @param argv Argument vector.
 * @return status code
 */
-int main(int argc, char **argv)
+int main(void)
 {
 /**
 * Load config files, if any.
