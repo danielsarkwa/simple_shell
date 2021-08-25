@@ -102,13 +102,13 @@ int lsh_launch(char **args)
     // Error forking
     perror("lsh");
   } else {
-    // ..
-  }
-
-  // Parent process
+    // Parent process
     do {
       wpid = waitpid(pid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
+  }
+
+  wpid = waitpid(pid, &status, WUNTRACED);
 
   return 1;
 }
