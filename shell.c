@@ -41,10 +41,14 @@ int lsh_num_builtins(void)
  */
 int lsh_cd(char **args)
 {
-  if (args[1] == NULL) {
+  if (args[1] == NULL)
+  {
     fprintf(stderr, "lsh: expected argument to \"cd\"\n");
-  } else {
-    if (chdir(args[1]) != 0) {
+  }
+  else
+  {
+    if (chdir(args[1]) != 0)
+    {
       perror("lsh");
     }
   }
@@ -63,7 +67,8 @@ int lsh_help(char **args)
   printf("Type program names and arguments, and hit enter.\n");
   printf("The following are built in:\n");
 
-  for (i = 0; i < lsh_num_builtins(); i++) {
+  for (i = 0; i < lsh_num_builtins(); i++)
+  {
     printf("  %s\n", builtin_str[i]);
   }
 
@@ -92,25 +97,32 @@ int lsh_launch(char **args)
   int status;
 
   pid = fork();
-  if (pid == 0) {
+  if (pid == 0)
+  {
     /**
      * Child process
      */
-    if (execvp(args[0], args) == -1) {
+    if (execvp(args[0], args) == -1)
+    {
       perror("lsh");
     }
     exit(EXIT_FAILURE);
-  } else if (pid < 0) {
+  }
+  else if (pid < 0)
+  {
     /**
      * Error forking
      */
     perror("lsh");
-  } else {
+  }
+  else
+  {
     /**
      * Parent proces
      */
     wpid = waitpid(pid, &status, WUNTRACED);
-    do {
+    do
+    {
       wpid = waitpid(pid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
   }
@@ -127,25 +139,27 @@ int lsh_execute(char **args)
 {
   int i;
 
-  if (args[0] == NULL) {
+  if (args[0] == NULL)
+  {
     /**
      * An empty command was entered
      */
     return 1;
   }
 
-  for (i = 0; i < lsh_num_builtins(); i++) {
+  for (i = 0; i < lsh_num_builtins(); i++)
+  {
     /**
      * Check if the command mataches a builtin command
      */
-    if (strcmp(args[0], builtin_str[i]) == 0) {
+    if (strcmp(args[0], builtin_str[i]) == 0)
+    {
       // run command if the command entered exists
       return (*builtin_func[i])(args);
     }
   }
   /**
-   * if the command does not exit in defined builtins,
-        then run command with arguments in a new process
+   * run execute non-builtins cmds
    */
   return lsh_launch(args);
 }
@@ -165,12 +179,14 @@ char *lsh_read_line(void)
   /**
    * when there is a failure in memory allocation
    */
-  if (!buffer) {
+  if (!buffer)
+  {
     fprintf(stderr, "lsh: allocation error\n");
     exit(EXIT_FAILURE);
   }
 
-  while (1) {
+  while (1)
+  {
     /**
      * Read a character
      */
@@ -179,10 +195,13 @@ char *lsh_read_line(void)
     /**
      * If we hit EOF, replace it with a null character and return
      */
-    if (c == EOF || c == '\n') {
+    if (c == EOF || c == '\n')
+    {
       buffer[position] = '\0';
       return buffer;
-    } else {
+    }
+    else
+    {
       buffer[position] = c;
     }
     position++;
@@ -190,10 +209,12 @@ char *lsh_read_line(void)
     /**
      * If we have exceeded the buffer, reallocate
      */
-    if (position >= bufsize) {
+    if (position >= bufsize)
+    {
       bufsize += LSH_RL_BUFSIZE;
       buffer = realloc(buffer, bufsize);
-      if (!buffer) {
+      if (!buffer)
+      {
         fprintf(stderr, "lsh: allocation error\n");
         exit(EXIT_FAILURE);
       }
@@ -215,20 +236,24 @@ char **lsh_split_line(char *line)
   char **tokens = malloc(bufsize * sizeof(char*));
   char *token;
 
-  if (!tokens) {
+  if (!tokens)
+  {
     fprintf(stderr, "lsh: allocation error\n");
     exit(EXIT_FAILURE);
   }
 
   token = strtok(line, LSH_TOK_DELIM);
-  while (token != NULL) {
+  while (token != NULL)
+  {
     tokens[position] = token;
     position++;
 
-    if (position >= bufsize) {
+    if (position >= bufsize)
+    {
       bufsize += LSH_TOK_BUFSIZE;
       tokens = realloc(tokens, bufsize * sizeof(char*));
-      if (!tokens) {
+      if (!tokens)
+      {
         fprintf(stderr, "lsh: allocation error\n");
         exit(EXIT_FAILURE);
       }
@@ -249,7 +274,8 @@ void lsh_loop(void)
   char **args;
   int status;
 
-  do {
+  do
+  {
     printf("> ");
 
     /**
