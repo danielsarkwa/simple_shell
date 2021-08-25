@@ -15,15 +15,14 @@ int lsh_exit(char **args);
  * List of builtin commands, followed by their corresponding functions.
  */
 char *builtin_str[] = {
-  "cd",
-  "help",
-  "exit"
+"cd",
+"help",
+"exit"
 };
-
 int (*builtin_func[]) (char **) = {
-  &lsh_cd,
-  &lsh_help,
-  &lsh_exit
+&lsh_cd,
+&lsh_help,
+&lsh_exit
 };
 
 int lsh_num_builtins()
