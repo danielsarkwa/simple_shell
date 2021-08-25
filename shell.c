@@ -72,7 +72,7 @@ return (1);
 * @param args List of args.  Not examined.
 * @return Always returns 0, to terminate execution.
 */
-int lsh_exit(void)
+int lsh_exit(char **args)
 {
 return (0);
 }
