@@ -59,7 +59,7 @@ int lsh_cd(char **args)
 int lsh_help(char **args)
 {
   int i;
-  printf("Stephen Brennan's LSH\n");
+  printf("Daniel Yeboah's LSH\n");
   printf("Type program names and arguments, and hit enter.\n");
   printf("The following are built in:\n");
 
@@ -102,11 +102,13 @@ int lsh_launch(char **args)
     // Error forking
     perror("lsh");
   } else {
-    // Parent process
+    // ..
+  }
+
+  // Parent process
     do {
       wpid = waitpid(pid, &status, WUNTRACED);
     } while (!WIFEXITED(status) && !WIFSIGNALED(status));
-  }
 
   return 1;
 }
@@ -152,6 +154,7 @@ char *lsh_read_line(void)
   int c;
 
   if (!buffer) {
+    // when there is a failure in memory allocation
     fprintf(stderr, "lsh: allocation error\n");
     exit(EXIT_FAILURE);
   }
@@ -190,7 +193,8 @@ char *lsh_read_line(void)
  */
 char **lsh_split_line(char *line)
 {
-  int bufsize = LSH_TOK_BUFSIZE, position = 0;
+  int bufsize = LSH_TOK_BUFSIZE;
+  int position = 0;
   char **tokens = malloc(bufsize * sizeof(char*));
   char *token;
 
@@ -259,6 +263,5 @@ int main(int argc, char **argv)
   lsh_loop();
 
   // Perform any shutdown/cleanup.
-
   return EXIT_SUCCESS;
 }
