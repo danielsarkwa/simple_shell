@@ -110,8 +110,7 @@ else
 * Parent proces
 */
 wpid = waitpid(pid, &status, WUNTRACED);
-do
-{
+do {
 wpid = waitpid(pid, &status, WUNTRACED);
 } while (!WIFEXITED(status) && !WIFSIGNALED(status));
 }
@@ -214,7 +213,7 @@ char **lsh_split_line(char *line)
 {
 int bufsize = LSH_TOK_BUFSIZE;
 int position = 0;
-char **tokens = malloc(bufsize * sizeof(char*));
+char **tokens = malloc(bufsize * sizeof(char *));
 char *token;
 if (!tokens)
 {
@@ -229,7 +228,7 @@ position++;
 if (position >= bufsize)
 {
 bufsize += LSH_TOK_BUFSIZE;
-tokens = realloc(tokens, bufsize * sizeof(char*));
+tokens = realloc(tokens, bufsize * sizeof(char *));
 if (!tokens)
 {
 fprintf(stderr, "lsh: allocation error\n");
@@ -239,7 +238,7 @@ exit(EXIT_FAILURE);
 token = strtok(NULL, LSH_TOK_DELIM);
 }
 tokens[position] = NULL;
- return (tokens);
+return (tokens);
 }
 /**
 * @brief Loop getting input and executing it.
@@ -249,11 +248,10 @@ void lsh_loop(void)
 char *line;
 char **args;
 int status;
-do
-{
+do {
 printf("> ");
 /**
-* Read the command from standard input 
+* Read the command from standard input
 */
 line = lsh_read_line();
 /**
