@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "C/C++ Runner: Debug Session",
+      "type": "cppdbg",
+      "request": "launch",
+      "args": [],
+      "stopAtEntry": false,
+      "cwd": "/home/victory/Desktop/ALX /simple_shell",
+      "environment": [],
+      "program": "/home/victory/Desktop/ALX /simple_shell/build/Debug/outDebug",
+      "internalConsoleOptions": "openOnSessionStart",
+      "MIMode": "gdb",
+      "miDebuggerPath": "/snap/bin/gdb",
+      "externalConsole": false
+    }
+  ]
+}
