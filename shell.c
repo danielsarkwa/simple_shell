@@ -7,8 +7,8 @@
 * Function Declarations for builtin shell commands:
 */
 int lsh_cd(char **args);
-int lsh_help(char **args);
-int lsh_exit(char **args);
+int lsh_help(void);
+int lsh_exit(void);
 /**
 * List of builtin commands, followed by their corresponding functions.
 */
