@@ -264,7 +264,7 @@ args = lsh_split_line(line);
 * Run the parsed commands
 */
 status = lsh_execute(args);
-]free(line);
+free(line);
 free(args);
 } while (status);
 }
