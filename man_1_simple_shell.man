@@ -87,7 +87,3 @@ sh(1) man page.
 
 .B Daniel Yeboah
 .B <dhannysark@outlook.com>
-
- 
- 
-

@@ -79,7 +79,7 @@ if (csr_ptr + 2 >= end_ptr)
 new_size = size * 2;
 length = csr_ptr - data->line;
 data->line = _realloc(data->line, size * sizeof(char),
-new_size * sizeof(char));
+new_size *sizeof(char));
 if (data->line == NULL)
 return (FAIL);
 size = new_size;
@@ -102,7 +102,7 @@ char *token;
 size_t size = TOKENSIZE, new_size, i = 0;
 if (_strcmp(data->line, "\n") == 0)
 return (FAIL);
-data->args = malloc(size * sizeof(char *));
+data->args = malloc(size *sizeof(char *));
 if (data->args == NULL)
 return (FAIL);
 token = strtok(data->line, DELIMITER);
@@ -114,8 +114,8 @@ data->args[i++] =  token;
 if (i + 2 >= size)
 {
 new_size = size * 2;
-data->args = _realloc(data->args, size * sizeof(char *),
-new_size * sizeof(char *));
+data->args = _realloc(data->args, size *sizeof(char *),
+new_size *sizeof(char *));
 if (data->args == NULL)
 return (FAIL);
 size = new_size;

@@ -45,7 +45,7 @@ else
 val = (val * 10) + (*c - '0');
 c++;
 }
-return (sign * val);
+return (sign *val);
 }
 /**
  * intlen - Determine the number of digit int integer
