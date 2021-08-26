@@ -1,0 +1,11 @@
+.vscode/
+*~
+*#
+*.exe
+*.out
+*.dbg
+*.o
+*.gch
+*.log
+hsh
+*.gz
